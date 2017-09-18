@@ -48,4 +48,5 @@ view editor =
     div []
         [ Html.map (\m -> WritingMsg m) <| Writing.view editor.writing
         , div [ style [ ( "white-space", "pre-wrap" ) ] ] [ text <| toJson editor.writing ]
+        , div [ style [ ( "white-space", "pre-wrap" ) ] ] [ text <| toString editor ]
         ]

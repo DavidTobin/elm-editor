@@ -2,16 +2,16 @@ module Writing exposing (Msg(..), Model, view, init, update, subscriptions)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (..)
 import Keyboard exposing (..)
 import Block exposing (..)
 import Element exposing (..)
-import Helpers exposing (..)
 import Char
-import Selection exposing (Cursor(..))
+import Key exposing (Key(..), onKeyWithOptions)
 
 
 type Msg
-    = Keypress KeyCode
+    = Keypress Key
 
 
 type alias Model =
@@ -23,7 +23,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { blocks = []
-    , cursor = NoSelection
+    , cursor = Cursor (Normal [ Text "" ]) 0
     }
         ! []
 
@@ -32,17 +32,11 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Keypress key ->
-            { model | blocks = updateSelectedBlock (Char.fromCode key) model.blocks } ! []
-
-
-updateSelectedBlock : Char -> List Block -> List Block
-updateSelectedBlock key blocks =
-    case blocks of
-        [] ->
-            [ Normal [ Text (String.fromChar key) ] ]
-
-        _ ->
-            List.map (\block -> Block.keypress key block) blocks
+            let
+                ( blocks, cursor ) =
+                    Block.updateSelectedBlock key model.cursor model.blocks
+            in
+                { model | blocks = blocks, cursor = cursor } ! []
 
 
 subscriptions : Model -> Sub Msg
@@ -53,54 +47,18 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div
-        [ contenteditable True
-        , styles
-        , Helpers.onKeyDown Keypress
-        ]
-        (List.map (\block -> blockView block) model.blocks)
-
-
-blockView : Block -> Html Msg
-blockView block =
     let
-        mapElements elements =
-            List.map (\element -> elementView element) elements
+        options =
+            { stopPropagation = False
+            , preventDefault = True
+            }
     in
-        case block of
-            Normal elements ->
-                div [ blockStyles ] <| mapElements elements
-
-            H1 elements ->
-                h1 [ blockStyles ] <| mapElements elements
-
-            H2 elements ->
-                h2 [ blockStyles ] <| mapElements elements
-
-            H3 elements ->
-                h3 [ blockStyles ] <| mapElements elements
-
-            H4 elements ->
-                h4 [ blockStyles ] <| mapElements elements
-
-            H5 elements ->
-                h5 [ blockStyles ] <| mapElements elements
-
-            P elements ->
-                p [ blockStyles ] <| mapElements elements
-
-
-elementView : Element -> Html Msg
-elementView element =
-    case element of
-        Text t ->
-            text t
-
-        Bold el ->
-            strong [] [ elementView el ]
-
-        Italics el ->
-            em [] [ elementView el ]
+        div
+            [ contenteditable True
+            , styles
+            , onKeyWithOptions options (\t -> Keypress t)
+            ]
+            (List.map (\block -> blockView block) model.blocks)
 
 
 styles : Html.Attribute Msg
@@ -111,11 +69,4 @@ styles =
         , ( "border", "1px solid #dedede" )
         , ( "margin", "10px" )
         , ( "padding", "15px 10px" )
-        ]
-
-
-blockStyles : Html.Attribute Msg
-blockStyles =
-    style
-        [ ( "padding", "5px 0" )
         ]

@@ -1,4 +1,7 @@
-module Element exposing (Element(..), keypress)
+module Element exposing (Element(..), keypress, elementView)
+
+import Html exposing (..)
+import Key exposing (Key(..))
 
 
 type Element
@@ -7,14 +10,40 @@ type Element
     | Text String
 
 
-keypress : Char -> Element -> Element
-keypress char element =
+
+-- State functions
+
+
+keypress : Key -> Element -> Element
+keypress key element =
     case element of
         Text text ->
-            Text (text ++ String.fromChar char)
+            case key of
+                Key k ->
+                    Text (text ++ k)
+
+                _ ->
+                    Text text
 
         Bold el ->
-            Bold (keypress char el)
+            Bold (keypress key el)
 
         Italics el ->
-            Italics (keypress char el)
+            Italics (keypress key el)
+
+
+
+-- Views
+
+
+elementView : Element -> Html msg
+elementView element =
+    case element of
+        Text t ->
+            text t
+
+        Bold el ->
+            strong [] [ elementView el ]
+
+        Italics el ->
+            em [] [ elementView el ]
