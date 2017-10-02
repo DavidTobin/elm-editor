@@ -1,7 +1,5 @@
 module Operations exposing (..)
 
--- Element Helpers
-
 
 appendText : Char -> Blocks -> Blocks
 appendText char blocks =

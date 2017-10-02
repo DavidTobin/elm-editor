@@ -91,8 +91,103 @@ updateSelectedBlock key (Cursor cursorBlock cursorPosition) blocks =
 
                         cursor =
                             Cursor block 0
+
+                        updateBlocks blocks_ =
+                            case blocks_ of
+                                [] ->
+                                    []
+
+                                a :: [] ->
+                                    [ a, block ]
+
+                                a :: b :: rest ->
+                                    if a == cursorBlock then
+                                        [ a, block ] ++ [ b ] ++ rest
+                                    else
+                                        [ a ] ++ (updateBlocks (b :: rest))
                     in
-                        ( (blocks ++ [ block ]), cursor )
+                        ( updateBlocks blocks, cursor )
+
+                ArrowRight ->
+                    let
+                        textSize =
+                            cursorBlock
+                                |> toText
+                                |> String.length
+
+                        cursorPosition_ =
+                            if cursorPosition < textSize then
+                                cursorPosition + 1
+                            else
+                                cursorPosition
+                    in
+                        ( blocks, Cursor cursorBlock cursorPosition_ )
+
+                ArrowLeft ->
+                    let
+                        cursorPosition_ =
+                            if cursorPosition > 0 then
+                                cursorPosition - 1
+                            else
+                                0
+                    in
+                        ( blocks, Cursor cursorBlock cursorPosition_ )
+
+                ArrowUp ->
+                    let
+                        prevItem blocks_ =
+                            case blocks_ of
+                                [] ->
+                                    cursorBlock
+
+                                x :: [] ->
+                                    cursorBlock
+
+                                x :: y :: rest ->
+                                    if y == cursorBlock then
+                                        x
+                                    else
+                                        prevItem (y :: rest)
+                    in
+                        ( blocks, Cursor (prevItem blocks) 0 )
+
+                ArrowDown ->
+                    let
+                        nextItem blocks_ =
+                            case blocks_ of
+                                [] ->
+                                    cursorBlock
+
+                                x :: [] ->
+                                    cursorBlock
+
+                                x :: y :: rest ->
+                                    if x == cursorBlock then
+                                        y
+                                    else
+                                        nextItem (y :: rest)
+                    in
+                        ( blocks, Cursor (nextItem blocks) 0 )
+
+                Backspace ->
+                    let
+                        updatedBlock =
+                            backspace (Cursor cursorBlock cursorPosition) cursorBlock
+
+                        cursor =
+                            Cursor updatedBlock (cursorPosition - 1)
+
+                        updatedBlocks =
+                            List.map
+                                (\block ->
+                                    if block == cursorBlock then
+                                        updatedBlock
+                                    else
+                                        block
+                                )
+                                blocks
+                    in
+                        ( updatedBlocks, cursor )
 
                 _ ->
                     let
@@ -110,6 +205,99 @@ updateSelectedBlock key (Cursor cursorBlock cursorPosition) blocks =
                                 blocks
                     in
                         ( updatedBlocks, Cursor updatedBlock (cursorPosition + 1) )
+
+
+backspace : Cursor -> Block -> Block
+backspace (Cursor cursorBlock cursorPosition) block =
+    let
+        backspace_ : List Element -> List Element
+        backspace_ elements =
+            case elements of
+                [] ->
+                    elements
+
+                a :: [] ->
+                    [ a ]
+
+                a :: b :: rest ->
+                    [ a ] ++ (backspace_ ([ b ] ++ rest))
+    in
+        case cursorPosition of
+            0 ->
+                block
+
+            _ ->
+                case block of
+                    Normal elements ->
+                        Normal (backspace_ elements)
+
+                    H1 elements ->
+                        Normal (backspace_ elements)
+
+                    H2 elements ->
+                        H2 (backspace_ elements)
+
+                    H3 elements ->
+                        H3 (backspace_ elements)
+
+                    H4 elements ->
+                        H4 (backspace_ elements)
+
+                    H5 elements ->
+                        H5 (backspace_ elements)
+
+                    P elements ->
+                        P (backspace_ elements)
+
+
+
+-- Helpers
+
+
+blockElements : Block -> List Element
+blockElements block =
+    case block of
+        Normal elements ->
+            elements
+
+        P elements ->
+            elements
+
+        H1 elements ->
+            elements
+
+        H2 elements ->
+            elements
+
+        H3 elements ->
+            elements
+
+        H4 elements ->
+            elements
+
+        H5 elements ->
+            elements
+
+
+extractText : Element -> String
+extractText element =
+    case element of
+        Text t ->
+            t
+
+        Bold el ->
+            extractText el
+
+        Italics el ->
+            extractText el
+
+
+toText : Block -> String
+toText block =
+    block
+        |> blockElements
+        |> List.map extractText
+        |> String.join ""
 
 
 
